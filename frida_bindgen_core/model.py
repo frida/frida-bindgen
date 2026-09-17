@@ -151,7 +151,9 @@ class ObjectType:
             type_element = retval.find("./type", GIR_NAMESPACES)
             if type_element is None:
                 continue
-            name, _ = self.resolve_type(type_element.get("name"))
+            name = type_element.get("name")
+            if name is None or "." not in name:
+                continue
             if name.split(".")[-1] == self.name:
                 result.append(element)
         return result

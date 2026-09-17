@@ -391,6 +391,17 @@ class Method(Procedure):
             return []
         return [p for p in self.parameters if p.direction == Direction.OUT]
 
+    @cached_property
+    def optional_out_parameter(self) -> Optional[Parameter]:
+        """The one value a `gboolean` method hands back, or nothing when it answers no."""
+        outs = self.out_parameters
+        if len(outs) != 1:
+            return None
+        rv = self.return_value
+        if rv is None or rv.type.name != "gboolean":
+            return None
+        return outs[0]
+
 
 @dataclass
 class Property:

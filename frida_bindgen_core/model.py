@@ -115,6 +115,7 @@ class ObjectType:
     type_struct: str
     _parent: Optional[str]
     _constructors: List[ET.Element]
+    _functions: List[ET.Element]
     _methods: List[ET.Element]
     _properties: List[ET.Element]
     _signals: List[ET.Element]
@@ -141,11 +142,26 @@ class ObjectType:
         return self.model.customizations.type_customizations.get(self.name)
 
     @cached_property
+    def _named_constructors(self) -> List[ET.Element]:
+        result = []
+        for element in self._functions:
+            retval = element.find("./return-value", GIR_NAMESPACES)
+            if retval is None:
+                continue
+            type_element = retval.find("./type", GIR_NAMESPACES)
+            if type_element is None:
+                continue
+            name, _ = self.resolve_type(type_element.get("name"))
+            if name.split(".")[-1] == self.name:
+                result.append(element)
+        return result
+
+    @cached_property
     def constructors(self) -> List[Constructor]:
         factory = self.model.factory
         constructors = []
         custom = self.customizations
-        for element in self._constructors:
+        for element in self._constructors + self._named_constructors:
             if element.get("introspectable") == "0" or element.get("deprecated") == "1":
                 continue
 
@@ -542,6 +558,7 @@ def parse_gir(
         if parent is not None:
             parent, _ = resolve_type(parent)
         constructors = element.findall(".//constructor", GIR_NAMESPACES)
+        functions = element.findall("./function", GIR_NAMESPACES)
         methods = element.findall(".//method", GIR_NAMESPACES)
         properties = element.findall(".//property", GIR_NAMESPACES)
         signals = element.findall(".//glib:signal", GIR_NAMESPACES)
@@ -556,6 +573,7 @@ def parse_gir(
             type_struct=type_struct,
             parent=parent,
             constructors=constructors,
+            functions=functions,
             methods=methods,
             properties=properties,
             signals=signals,
@@ -578,6 +596,7 @@ def parse_gir(
         if parent is not None:
             parent, _ = resolve_type(parent)
         constructors = []
+        functions = element.findall("./function", GIR_NAMESPACES)
         methods = element.findall(".//method", GIR_NAMESPACES)
         properties = element.findall(".//property", GIR_NAMESPACES)
         signals = element.findall(".//glib:signal", GIR_NAMESPACES)
@@ -589,6 +608,7 @@ def parse_gir(
             type_struct=type_struct,
             parent=parent,
             constructors=constructors,
+            functions=functions,
             methods=methods,
             properties=properties,
             signals=signals,

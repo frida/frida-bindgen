@@ -384,6 +384,13 @@ class Method(Procedure):
 
     object_type: ObjectType
 
+    @cached_property
+    def out_parameters(self) -> List[Parameter]:
+        """What the method hands back through a pointer, less a string vector's length."""
+        if self.return_value is not None and self.return_value.type.name == "utf8[]":
+            return []
+        return [p for p in self.parameters if p.direction == Direction.OUT]
+
 
 @dataclass
 class Property:
